@@ -513,57 +513,53 @@ export class KoreaderRepository {
     }));
   }
 
-  async getKoreaderTopBooks(userId: number, limit = 20): Promise<{ bookId: Number(r.book_id), title: r.title, totalReadSecs: Number(r.total_read_secs) }[]>{
-  const result = await this.db.execute<{ book_id: number; title: string; total_read_secs: number }>(sql`
-    SELECT
-      b.id AS book_id,
-      coalesce(bm.title, 'Unknown Book') AS title,
-      sum(ks.total_read_secs)::integer AS total_read_secs
-    FROM koreader_book_stats ks
-    INNER JOIN book_files bf ON bf.id = ks.book_file_id
-    INNER JOIN books b ON b.id = bf.book_id
-    LEFT JOIN book_metadata bm ON bm.book_id = b.id
-    WHERE ks.user_id = ${userId} AND ks.total_read_secs > 0
-    GROUP BY b.id, bm.title
-    ORDER BY total_read_secs DESC
-    LIMIT ${limit}
-  `);
-  return result.rows.map((r) => ({ bookId: Number(r.book_id), title: r.title, totalReadSecs: Number(r.total_read_secs) }));
-}
-  
+  async getKoreaderTopBooks(userId: number, limit = 20): Promise<{ bookId: number; title: string; totalReadSecs: number }[]> {
+    const result = await this.db.execute<{ book_id: number; title: string; total_read_secs: number }>(sql`
+      SELECT
+        b.id AS book_id,
+        coalesce(bm.title, 'Unknown Book') AS title,
+        sum(ks.total_read_secs)::integer AS total_read_secs
+      FROM koreader_book_stats ks
+      INNER JOIN book_files bf ON bf.id = ks.book_file_id
+      INNER JOIN books b ON b.id = bf.book_id
+      LEFT JOIN book_metadata bm ON bm.book_id = b.id
+      WHERE ks.user_id = ${userId} AND ks.total_read_secs > 0
+      GROUP BY b.id, bm.title
+      ORDER BY total_read_secs DESC
+      LIMIT ${limit}
+    `);
+    return result.rows.map((r) => ({ bookId: Number(r.book_id), title: r.title, totalReadSecs: Number(r.total_read_secs) }));
+  }
+
   async getKoreaderTopAnnotated(
-  userId: number,
-  limit = 20,
-): Promise<{ bookId: number; title: string; highlightsCount: number; notesCount: number }[]> {
-  const result = await this.db.execute<{
-    book_id: number;
-    title: string;
-    highlights_count: number;
-    notes_count: number;
-  }>(sql`
-    SELECT
-      b.id AS book_id,
-      coalesce(bm.title, 'Unknown Book') AS title,
-      sum(ks.highlights_count)::integer AS highlights_count,
-      sum(ks.notes_count)::integer AS notes_count
-    FROM koreader_book_stats ks
-    INNER JOIN book_files bf ON bf.id = ks.book_file_id
-    INNER JOIN books b ON b.id = bf.book_id
-    LEFT JOIN book_metadata bm ON bm.book_id = b.id
-    WHERE ks.user_id = ${userId}
-      AND (ks.highlights_count > 0 OR ks.notes_count > 0)
-    GROUP BY b.id, bm.title
-    HAVING sum(ks.highlights_count) + sum(ks.notes_count) > 0
-    ORDER BY sum(ks.highlights_count) + sum(ks.notes_count) DESC
-    LIMIT ${limit}
-  `);
-  return result.rows.map((r) => ({
-    bookId: Number(r.book_id),
-    title: r.title,
-    highlightsCount: Number(r.highlights_count),
-    notesCount: Number(r.notes_count),
-  }));
-}
+    userId: number,
+    limit = 20,
+  ): Promise<{ bookId: number; title: string; highlightsCount: number; notesCount: number }[]> {
+    const result = await this.db.execute<{ book_id: number; title: string; highlights_count: number; notes_count: number }>(sql`
+      SELECT
+        b.id AS book_id,
+        coalesce(bm.title, 'Unknown Book') AS title,
+        sum(ks.highlights_count)::integer AS highlights_count,
+        sum(ks.notes_count)::integer AS notes_count
+      FROM koreader_book_stats ks
+      INNER JOIN book_files bf ON bf.id = ks.book_file_id
+      INNER JOIN books b ON b.id = bf.book_id
+      LEFT JOIN book_metadata bm ON bm.book_id = b.id
+      WHERE ks.user_id = ${userId}
+        AND (ks.highlights_count > 0 OR ks.notes_count > 0)
+      GROUP BY b.id, bm.title
+      HAVING sum(ks.highlights_count) + sum(ks.notes_count) > 0
+      ORDER BY sum(ks.highlights_count) + sum(ks.notes_count) DESC
+      LIMIT ${limit}
+    `);
+    return result.rows.map((r) => ({
+      bookId: Number(r.book_id),
+      title: r.title,
+      highlightsCount: Number(r.highlights_count),
+      notesCount: Number(r.notes_count),
+    }));
+  }
+
   async getKoreaderWeeklyRhythm(userId: number): Promise<{ dow: number; durationSeconds: number }[]> {
     const result = await this.db.execute<{ dow: number; duration_seconds: number }>(sql`
       WITH days AS (
